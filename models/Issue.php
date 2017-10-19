@@ -18,8 +18,15 @@ use Yii;
  * @property string $deadline
  * @property integer $status
  * @property integer $priority
+ * @property string $started_at
+ * @property string $finished_at
  * @property Assignee[] $assignees
+ * @property Tag[] $tags
+ * @property Tag[] $personalTags
  * @property IssueContent $content
+ * @property Issue|null $parent
+ * @property Issue[] $subtasks
+ * @property Document[] $documents
  */
 class Issue extends ContentActiveRecord
 {
@@ -40,7 +47,7 @@ class Issue extends ContentActiveRecord
     {
         return [
             [['description'], 'string'],
-            [['deadline',], 'safe'],
+            [['deadline', 'started_at'], 'date', 'format' => 'php:Y-m-d H:i'],
             [['status', 'priority',], 'integer'],
             [['title'], 'string', 'max' => 255],
         ];
@@ -80,6 +87,23 @@ class Issue extends ContentActiveRecord
     }
 
     /**
+     * @return TagQuery|\yii\db\ActiveQuery
+     */
+    public function getTags()
+    {
+        return $this->hasMany(Tag::class, ['id' => 'tag_id'])
+            ->viaTable(TagsIssues::tableName(), ['issue_id' => 'id']);
+    }
+
+    /**
+     * @return TagQuery|\yii\db\ActiveQuery
+     */
+    public function getPersonalTags()
+    {
+        return $this->getTags()->byUser(\Yii::$app->user->id);
+    }
+
+    /**
      * @inheritdoc
      */
     public function getContent()
@@ -89,6 +113,29 @@ class Issue extends ContentActiveRecord
             ->andWhere(["$tableName.object_model" => self::className()]);
     }
 
+    /**
+     * @return IssueQuery|\yii\db\ActiveQuery
+     */
+    public function getParent()
+    {
+        return $this->hasOne(Issue::class, ['id' => 'parent_id'])
+            ->viaTable(Link::tableName(), ['child_id' => 'id']);
+    }
+
+    /**
+     * @return IssueQuery|\yii\db\ActiveQuery
+     */
+    public function getSubtasks()
+    {
+        return $this->hasMany(Issue::class, ['id' => 'child_id'])
+            ->viaTable(Link::tableName(), ['parent_id' => 'id']);
+    }
+
+    public function getDocuments()
+    {
+        return $this->hasMany(Document::class, ['id' => 'document_id'])
+            ->viaTable(DocumentIssue::tableName(), ['issue_id' => 'id']);
+    }
 
     /**
      * @inheritdoc
@@ -102,6 +149,8 @@ class Issue extends ContentActiveRecord
             'status' => \Yii::t('TrackerIssuesModule.views', 'Status'),
             'visibility' => \Yii::t('TrackerIssuesModule.views', 'Visibility'),
             'priority' => \Yii::t('TrackerIssuesModule.views', 'Priority'),
+            'finished_at' => \Yii::t('TrackerIssuesModule.views', 'Finished at'),
+            'started_at' => \Yii::t('TrackerIssuesModule.views', 'Started at'),
         ];
     }
 }

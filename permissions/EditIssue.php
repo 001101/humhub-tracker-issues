@@ -18,14 +18,14 @@ class EditIssue extends \humhub\libs\BasePermission
         Space::USERGROUP_OWNER,
         Space::USERGROUP_MEMBER,
         Space::USERGROUP_ADMIN,
-        Space::USERGROUP_MODERATOR,
+        User::USERGROUP_SELF,
     ];
 
     /**
      * @inheritdoc
      */
     protected $fixedGroups = [
-        Space::USERGROUP_USER,
+        User::USERGROUP_GUEST,
     ];
 
     /**
